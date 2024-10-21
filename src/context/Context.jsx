@@ -11,10 +11,14 @@ const ContextProvider = (props) => {
   const [loading, setLoading] = useState(false);
   const [resultData, setResultData] = useState("");
 
-  const delayPara = (index, nextWord) => {
-    setTimeout(function () {
-      setResultData((prev) => prev + nextWord);
-    }, 75 * index);
+  const delayWord = (index, nextPart, isBold) => {
+    setTimeout(() => {
+      if (isBold) {
+        setResultData((prev) => prev + `<b>${nextPart}</b> `); // Bold text
+      } else {
+        setResultData((prev) => prev + nextPart + " "); // Regular text
+      }
+    }, 150 * index); // Adjust speed (150ms delay between words)
   };
 
   const onSent = async () => {
@@ -22,25 +26,24 @@ const ContextProvider = (props) => {
     setLoading(true);
     setShowResult(true);
     setRecentPrompt(input);
-    
-    let newResponse = ""; // Initialize newResponse
+
     try {
-      const response = await runChat(input); // Fetch response
-      let responseArray = response.split("**");
-      
-      for (let i = 0; i < responseArray.length; i++) {
-        if (i === 0 || i % 2 !== 1) {
-          newResponse += responseArray[i];
-        } else {
-          newResponse += "<br>" + responseArray[i] + "</br>";
-        }
-      }
-      
-      let newResponse2 = newResponse.split("*").join("</br>");
-      setResultData(newResponse2); // Set the formatted result data
+      const response = await runChat(input);
+
+      // Split response by '**' to identify bold sections
+      const responseArray = response.split("**");
+
+      responseArray.forEach((part, index) => {
+        const isBold = index % 2 === 1; // Bold for odd indices (between **)
+        const words = part.split(" "); // Split part by words
+        words.forEach((word, wordIndex) => {
+          delayWord(index * words.length + wordIndex, word, isBold); // Add each word with delay
+        });
+      });
+
     } catch (error) {
       console.error("Error fetching data:", error);
-      setResultData("Error: Failed to get a response."); // Handle error
+      setResultData("Error: Failed to get a response.");
     } finally {
       setLoading(false);
       setInput(""); // Clear input field after sending
